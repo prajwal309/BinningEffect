@@ -20,10 +20,10 @@ GamD = 0.1
 
 GamV = 0.5346*Gam0 + np.sqrt(0.2166*Gam0**2+GamD**2.0)
 
-LineCenter = 1000.0
+LineCenter = 300.0
 
 #How far is one going
-Extent = 1500.0*GamV
+Extent = 100.0*GamV
 
 #StepLevels = np.arange(-8.0,3.,0.01)
 StepLevels = np.arange(-4.0,1.5,0.0005)
@@ -47,6 +47,11 @@ for Counter, StepValue in enumerate(AllStepSizes):
         StoreValue = StepValue
         print(GamV/StoreValue)
         PrintFlag = False
+
+        plt.figure()
+        plt.plot(WaveNumber, Profile, "ko")
+        plt.show()
+
     AreaValues[Counter]=Area
 
 plt.figure(figsize=(12,8))
