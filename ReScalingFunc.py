@@ -1,58 +1,56 @@
 import numpy as np
+from scipy import signal
 import matplotlib.pyplot as plt
+from LineProfiles import *
 
-def Gaussian(Freq, Freq0, Gamma_D, A):
- return 1./(np.sqrt(np.pi)*Gamma_D)*np.exp(-(Freq - Freq0)**2.0/Gamma_D**2.0)
+WaveNumber = np.arange(950,1050,0.0025)
 
-def Lorentzian(Freq, Freq0, Gamma_L, A):
- return Gamma_L/((Freq-Freq0)**2.0+Gamma_L**2.0)
+LineCenter = 1000
+ScaleD = 10.0
+ScaleL = 3.0
+GamD = 1.0
+GamL = 1.0
 
+DopProf1 = PROFILE_DOPPLER(LineCenter, GamD, GamL, WaveNumber)
+DopProf2 = PROFILE_DOPPLER(LineCenter, ScaleD*GamD, ScaleL*GamL, WaveNumber)
 
+LorProf1 = PROFILE_LORENTZ(LineCenter, GamD, GamL, WaveNumber)
+LorProf2 = PROFILE_DOPPLER(LineCenter, ScaleD*GamD), ScaleL*GamL, WaveNumber)
 
-Freq = np.linspace(95,105,1000)
-
-
-
-Nu_0 = 100
-Gamma_D1 = 1.0
-Gamma_D2 = 0.5
-
-Gamma_L1 = 1.0
-Gamma_L2 = 0.5
-
-
-G1 = Gaussian(Freq,100, Gamma_D1, 1.0 )
-G2 = Gaussian(Freq,100, Gamma_D2, 1.0)
-
-L1 = Lorentzian(Freq,100, Gamma_L1, 1.0 )
-L2 = Lorentzian(Freq,100, Gamma_L2, 1.0 )
-
-H1 = np.convolve(G1, L2, mode='same')
-H2 = np.convolve(G2, L1, mode='same')
+VoigtProf1 = PROFILE_VOIGT(LineCenter, GamD, GamL, WaveNumber)#+PROFILE_VOIGT(1050, 3.0, 3.0, WaveNumberVoigt)
+VoigtProf2 = PROFILE_VOIGT(LineCenter, ScaleD*GamD, ScaleL*GamL, WaveNumber)#+PROFILE_VOIGT(1050, 1.0, 1.0, WaveNumberVoigt)
 
 
+
+
+#Create line individually
+ConvProf1 = (WaveNumber[1]-WaveNumber[0])*np.convolve(DopProf1, LorProf1, mode='same')
+ConvProf2 = (WaveNumber[1]-WaveNumber[0])*np.convolve(DopProf2, LorProf2, mode='same')
+
+TrialConv = (WaveNumber[1]-WaveNumber[0])*np.convolve(VoigtProf1,np.sqrt(DopProf2), mode='same')
+#TrialConv = (WaveNumber[1]-WaveNumber[0])*np.convolve(TrialConv,LorProf2, mode='same')
 
 plt.figure()
-plt.subplot(211)
-plt.plot(Freq, G1, "ko")
-plt.plot(Freq, G2, "ro")
-plt.subplot(212)
-plt.plot(Freq, L1, "ko")
-plt.plot(Freq, L2, "ro")
+plt.plot(WaveNumber, TrialConv, color="navy", linestyle=":", label="Obtained Profile")
+plt.plot(WaveNumber, VoigtProf2, "bo", label="Expected Profile")
 plt.show()
 
+#Taking the fast fourier transform
+FFT_Dop1 = 1./len(WaveNumber)*np.fft.fft(DopProf1)
+FFT_Dop2 = 1./len(WaveNumber)*np.fft.fft(DopProf2)
 
-plt.figure(figsize=(12,7))
-plt.subplot(211)
-plt.plot(Freq, H1, "k-", label="Case 1")
-plt.plot(Freq, H2+2.0, "r-", label="Case 2")
-plt.legend()
-plt.subplot(212)
-plt.plot(Freq, H1-H2, "k-", label="Case 1")
-plt.xlabel("Frequency")
-plt.ylabel("Residual")
+
+FFT_Lor1 = 1./len(WaveNumber)*np.fft.fft(LorProf1)
+FFT_Lor2 = 1./len(WaveNumber)*np.fft.fft(LorProf2)
+
+MultipliedFFT1 = np.fft.fftshift(np.fft.ifft(FFT_Dop1*FFT_Lor1))
+
+plt.figure()
+plt.plot(WaveNumber, VoigtProf1/max(VoigtProf1), "ko")
+plt.plot(WaveNumber, ConvProf1/max(ConvProf1), "r-")
+plt.plot(WaveNumber, MultipliedFFT1/max(MultipliedFFT1), "g+")
 plt.show()
 
-
-
-Area1 = np.sum(Gaussian1)
+#RescaleFactor = (WaveNumber[1]-WaveNumber[0])
+#VoigtConvolved1 = RescaleFactor*np.convolve(LD_Profile, LL_Profile1, mode='same')
+#VoigtConvolved2 = RescaleFactor*np.convolve(LD_Profile, LL_Profile2, mode='same')
